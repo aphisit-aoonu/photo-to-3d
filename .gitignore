@@ -1,0 +1,8 @@
+﻿.env
+node_modules/
+__pycache__/
+build/
+jobs/
+models/figure*
+cutouts/figure*
+cutouts/sheet.png

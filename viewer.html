@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>3D Viewer</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  body { margin: 0; background: #1e1e1e; color: #ddd; font-family: sans-serif; }
+  model-viewer { width: 100vw; height: 100vh; }
+  #name { position: fixed; top: 12px; left: 16px; }
+</style>
+</head>
+<body>
+<div id="name"></div>
+<model-viewer id="mv" camera-controls auto-rotate shadow-intensity="1" exposure="1.1"></model-viewer>
+<script>
+  const file = new URLSearchParams(location.search).get('m') || 'models/plant_trellis/model.glb';
+  document.getElementById('mv').src = file;
+  document.getElementById('name').textContent = file;
+</script>
+</body>
+</html>

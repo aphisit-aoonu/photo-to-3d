@@ -1,0 +1,9 @@
+rembg[cpu]==2.0.69
+gradio_client==2.7.2
+pillow
+numpy
+fastapi==0.143.3
+uvicorn
+python-multipart
+imageio
+imageio-ffmpeg

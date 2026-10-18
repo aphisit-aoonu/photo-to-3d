@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Turntable</title>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  html, body { margin: 0; background: transparent; }
+  model-viewer { width: 100vw; height: 100vh; --poster-color: transparent; }
+</style>
+</head>
+<body>
+<model-viewer id="mv" environment-image="neutral" shadow-intensity="1" exposure="1.05"
+  interaction-prompt="none" camera-orbit="0deg 75deg auto" field-of-view="28deg"></model-viewer>
+<script>
+  const q = new URLSearchParams(location.search);
+  const mv = document.getElementById('mv');
+  mv.src = q.get('m');
+  window.ready = new Promise(r => mv.addEventListener('load', r, { once: true }));
+  window.setAngle = async (deg, pitch, radius = 'auto') => {
+    mv.cameraOrbit = `${deg}deg ${pitch}deg ${radius}`;
+    mv.jumpCameraToGoal();
+    await mv.updateComplete;
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  };
+</script>
+</body>
+</html>

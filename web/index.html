@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo to 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0f12;
+    --panel: #16181d;
+    --line: #262932;
+    --text: #e8e9ec;
+    --muted: #8b8f9a;
+    --accent: #e8e9ec;
+    --accent-text: #0e0f12;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 15px/1.5 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  header { display: flex; align-items: baseline; gap: 14px; padding: 22px 28px 0; }
+  header h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  header span { color: var(--muted); font-size: 14px; }
+  main { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 20px; padding: 20px 28px 28px;
+    height: calc(100% - 50px); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+  #left { display: flex; flex-direction: column; padding: 18px; gap: 14px; min-height: 0; }
+  #drop { border: 1px dashed #3a3e49; border-radius: 10px; padding: 26px 16px; text-align: center; cursor: pointer;
+    color: var(--muted); transition: border-color .15s, background .15s; }
+  #drop strong { display: block; color: var(--text); font-weight: 500; margin-bottom: 4px; }
+  #drop.over { border-color: var(--text); background: #1c1f26; }
+  #thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; overflow-y: auto; align-content: start; flex: 1; min-height: 0; }
+  #thumbs img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; display: block;
+    animation: in .25s ease-out both; }
+  @keyframes in { from { opacity: 0; transform: scale(.96); } }
+  .count { color: var(--muted); font-size: 13px; }
+  button { font: inherit; font-weight: 500; border: 0; border-radius: 10px; padding: 12px 16px; cursor: pointer; }
+  #build { background: var(--accent); color: var(--accent-text); }
+  #build:disabled { background: #2a2d35; color: #666b77; cursor: default; }
+  #status { min-height: 42px; }
+  #status .text { font-size: 13px; color: var(--muted); }
+  .bar { height: 2px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: 8px; visibility: hidden; }
+  .bar i { display: block; height: 100%; width: 30%; background: var(--text); animation: slide 1.2s ease-in-out infinite; }
+  .busy .bar { visibility: visible; }
+  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+  #right { position: relative; overflow: hidden; }
+  model-viewer { width: 100%; height: 100%; background: radial-gradient(ellipse at 50% 60%, #1d2027 0%, var(--panel) 70%);
+    --poster-color: transparent; }
+  #empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
+  #actions { position: absolute; left: 18px; right: 18px; bottom: 18px; display: flex; justify-content: space-between;
+    align-items: center; visibility: hidden; }
+  #actions .hint { color: var(--muted); font-size: 13px; }
+  #download { background: #22252d; color: var(--text); border: 1px solid var(--line); text-decoration: none;
+    padding: 10px 14px; border-radius: 10px; font-weight: 500; font-size: 14px; }
+  #download:hover { border-color: #3a3e49; }
+  @media (max-width: 760px) {
+    header { padding: 18px 16px 0; }
+    main { grid-template-columns: 1fr; height: auto; padding: 16px; }
+    #right { height: 70vh; }
+  }
+</style>
+</head>
+<body>
+<header><h1>Photo to 3D</h1><span>Phone photos in, 3D model out</span></header>
+<main>
+  <section id="left" class="panel">
+    <label id="drop">
+      <strong>Drop photos here</strong>
+      or click to choose · 4–10 photos from all sides
+      <input id="file" type="file" accept="image/*" multiple hidden>
+    </label>
+    <div id="thumbs"></div>
+    <div class="count" id="count"></div>
+    <button id="build" disabled>Build 3D model</button>
+    <div id="status"><div class="text"></div><div class="bar"><i></i></div></div>
+  </section>
+  <section id="right" class="panel">
+    <model-viewer id="mv" camera-controls camera-orbit="0deg 75deg auto" auto-rotate auto-rotate-delay="1500" rotation-per-second="24deg"
+      environment-image="neutral" shadow-intensity="1" exposure="1.05" interaction-prompt="none"></model-viewer>
+    <div id="empty">Your 3D model will appear here</div>
+    <div id="actions"><span class="hint">Drag to rotate · scroll to zoom</span><a id="download" download="model.glb">Download .glb</a></div>
+  </section>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let files = [];
+
+  function showThumbs(srcs) {
+    $('thumbs').innerHTML = '';
+    srcs.forEach((src, i) => {
+      const img = new Image();
+      img.src = src;
+      img.style.animationDelay = `${i * 60}ms`;
+      $('thumbs').appendChild(img);
+    });
+    $('count').textContent = srcs.length ? `${srcs.length} photo${srcs.length > 1 ? 's' : ''}` : '';
+  }
+
+  function addFiles(list) {
+    files = files.concat([...list].filter((f) => f.type.startsWith('image/'))).slice(0, 12);
+    showThumbs(files.map((f) => URL.createObjectURL(f)));
+    $('build').disabled = files.length === 0;
+  }
+
+  function setStatus(text, busy) {
+    $('status').querySelector('.text').textContent = text;
+    $('status').classList.toggle('busy', !!busy);
+  }
+
+  function showModel(id) {
+    const url = `/api/jobs/${id}/model.glb`;
+    $('mv').src = url;
+    $('download').href = url;
+    $('empty').style.display = 'none';
+    $('actions').style.visibility = 'visible';
+  }
+
+  async function poll(id) {
+    const s = await (await fetch(`/api/jobs/${id}`)).json();
+    if (!files.length) showThumbs(s.photos);
+    if (s.stage === 'done') { setStatus(`Done · ${s.photos.length} photos`, false); showModel(id); return; }
+    if (s.stage === 'error') { setStatus(`Something went wrong: ${s.detail}`, false); $('build').disabled = false; return; }
+    setStatus(s.detail, true);
+    setTimeout(() => poll(id), 1500);
+  }
+
+  $('drop').addEventListener('dragover', (e) => { e.preventDefault(); $('drop').classList.add('over'); });
+  $('drop').addEventListener('dragleave', () => $('drop').classList.remove('over'));
+  $('drop').addEventListener('drop', (e) => { e.preventDefault(); $('drop').classList.remove('over'); addFiles(e.dataTransfer.files); });
+  $('file').addEventListener('change', (e) => addFiles(e.target.files));
+
+  $('build').addEventListener('click', async () => {
+    $('build').disabled = true;
+    setStatus('Uploading', true);
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const r = await fetch('/api/jobs', { method: 'POST', body: fd });
+    if (!r.ok) { setStatus((await r.json()).detail || 'Upload failed', false); $('build').disabled = false; return; }
+    const { id } = await r.json();
+    history.replaceState(null, '', `?job=${id}`);
+    poll(id);
+  });
+
+  const jobId = new URLSearchParams(location.search).get('job');
+  if (jobId) poll(jobId);
+</script>
+</body>
+</html>
