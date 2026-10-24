@@ -248,10 +248,8 @@ def lofi():
             mix.add(t0 + beat * 2.5, bass(roots[b % 4] + 7, beat * 1.2, 0.1), 0.28)
     out = mix.render(decay=1.1, wet_gain=0.4)
     n = len(out)
-    crackle = (rng.random(n) > 0.9993) * rng.normal(0, 0.35, n)
-    vinyl = lp(hp(rng.normal(0, 0.012, n) + crackle, 800), 5000)
     wow = 1 + 0.002 * np.sin(2 * np.pi * 0.5 * np.arange(n) / SR)
-    out = np.stack([lp(out[:, c], 7000) * wow for c in (0, 1)], -1) + vinyl[:, None]
+    out = np.stack([lp(out[:, c], 7000) * wow for c in (0, 1)], -1)  # no vinyl noise layer: it read as hiss
     return out / np.max(np.abs(out)) * 0.89
 
 
